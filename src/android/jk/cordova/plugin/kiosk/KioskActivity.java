@@ -5,6 +5,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.Build;
@@ -19,8 +20,12 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.SurfaceView;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.ViewAnimator;
 
 import java.lang.reflect.Method;
 
@@ -32,6 +37,17 @@ public class KioskActivity extends CordovaActivity {
     Object statusBarService;
     ActivityManager am;
     String TAG = "KioskActivity";
+
+    private ViewAnimator viewAnimator;
+    private SurfaceView surfaceView;
+
+    public ViewAnimator getViewAnimator() {
+        return viewAnimator;
+    }
+
+    public SurfaceView getSurfaceView() {
+        return surfaceView;
+    }
 
     protected void onStart() {
         super.onStart();
@@ -184,5 +200,31 @@ public class KioskActivity extends CordovaActivity {
         public boolean onInterceptTouchEvent(MotionEvent ev) {
             return true;
         }
+    }
+
+    @Override
+    protected void createViews() {
+        appView.getView().setId(View.generateViewId());
+        appView.getView().setLayoutParams(new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
+        viewAnimator = new ViewAnimator(this);
+        surfaceView = new SurfaceView(this);
+        surfaceView.setLayoutParams(new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
+        viewAnimator.addView(appView.getView());
+        viewAnimator.addView(surfaceView);
+        setContentView(viewAnimator);
+
+        if (preferences.contains("BackgroundColor")) {
+            int backgroundColor = preferences.getInteger("BackgroundColor", Color.BLACK);
+            // Background of activity:
+            appView.getView().setBackgroundColor(backgroundColor);
+        }
+
+        appView.getView().requestFocusFromTouch();
     }
 }
