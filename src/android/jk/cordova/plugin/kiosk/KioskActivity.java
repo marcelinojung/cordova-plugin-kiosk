@@ -33,6 +33,9 @@ public class KioskActivity extends CordovaActivity {
 
     private static final String PREF_KIOSK_MODE = "pref_kiosk_mode";
     private static final int REQUEST_CODE = 123467;
+    private static boolean inImmersiveSystemUiTransition = false;
+    private static int immersiveSystemUiOptions = 0;
+    private static boolean allowImmersiveSystemUiOverlay = false;
     public static boolean running = false;
     Object statusBarService;
     ActivityManager am;
@@ -40,6 +43,7 @@ public class KioskActivity extends CordovaActivity {
 
     private ViewAnimator viewAnimator;
     private SurfaceView surfaceView;
+    private CustomViewGroup immersiveSystemUiOverlayView;
 
     public ViewAnimator getViewAnimator() {
         return viewAnimator;
@@ -57,7 +61,7 @@ public class KioskActivity extends CordovaActivity {
             checkDrawOverlayPermission();
         } else {
             sp.edit().putBoolean(PREF_KIOSK_MODE, true).commit();
-            addOverlay();
+            allowImmersiveSystemUiOverlay = true;
         }
         running = true;
     }
@@ -78,12 +82,13 @@ public class KioskActivity extends CordovaActivity {
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext());
             sp.edit().putBoolean(PREF_KIOSK_MODE, true).commit();
             if (Settings.canDrawOverlays(this)) {
-                addOverlay();
+                allowImmersiveSystemUiOverlay = true;
             }
         }
     }
+
     //http://stackoverflow.com/questions/25284233/prevent-status-bar-for-appearing-android-modified?answertab=active#tab-top
-    public void addOverlay() {
+    private void addOverlay() {
         WindowManager manager = ((WindowManager) getApplicationContext()
                 .getSystemService(Context.WINDOW_SERVICE));
 
@@ -103,9 +108,17 @@ public class KioskActivity extends CordovaActivity {
                 .getDisplayMetrics().scaledDensity);
         localLayoutParams.format = PixelFormat.TRANSPARENT;
 
-        CustomViewGroup view = new CustomViewGroup(this);
+        immersiveSystemUiOverlayView = new CustomViewGroup(this);
+        manager.addView(immersiveSystemUiOverlayView, localLayoutParams);
+    }
 
-        manager.addView(view, localLayoutParams);
+    private void removeOverlay() {
+        WindowManager manager = ((WindowManager) getApplicationContext()
+                .getSystemService(Context.WINDOW_SERVICE));
+
+        if (immersiveSystemUiOverlayView != null) {
+            manager.removeView(immersiveSystemUiOverlayView);
+        }
     }
 
     protected void onStop() {
@@ -117,6 +130,54 @@ public class KioskActivity extends CordovaActivity {
         super.onCreate(savedInstanceState);
         super.init();
         loadUrl(launchUrl);
+
+        final android.os.Handler setTimeout = new android.os.Handler();
+
+        // Runnable that removes the Fullscreen Overlay that prevents the User from interacting
+        // with the SystemUI.
+        final Runnable runnableRemoveOverlay = new Runnable() {
+            public void run() {
+                removeOverlay();
+                inImmersiveSystemUiTransition = false;
+            }
+        };
+
+        // Runnable that hides the SystemUI in case SystemUiVisibility flags are set properly.
+        final Runnable runnableHideSystemUI = new Runnable() {
+            public void run() {
+                getWindow().getDecorView().setSystemUiVisibility(immersiveSystemUiOptions);
+                setTimeout.postDelayed(runnableRemoveOverlay, 1000);
+            }
+        };
+
+        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+            @Override
+            public void onSystemUiVisibilityChange(int visibility) {
+                if (visibility == View.STATUS_BAR_VISIBLE) {
+
+                    if (inImmersiveSystemUiTransition) {
+                        // It seems the User clicks randomly around.
+                        // Strategy: Keep intercepting touch events and de-install Timeouts
+                        // that would otherwise remove the Overlay.
+                        setTimeout.removeCallbacks(runnableHideSystemUI);
+                        setTimeout.removeCallbacks(runnableRemoveOverlay);
+                    } else {
+                        // We cannot prevent SystemUI from appearing. But we can prevent the
+                        // User from interacting with SystemUI.
+                        // Strategy: Show fullscreen overlay that intercepts touch events.
+                        inImmersiveSystemUiTransition = true;
+
+                        if (allowImmersiveSystemUiOverlay)
+                            addOverlay();
+                    }
+
+                    // Install Timeout that hides SystemUI after 1sec and hides overlay after 2secs.
+                    setTimeout.postDelayed(runnableHideSystemUI, 1000);
+
+                }
+            }
+        });
+
     }
 
     private void collapseNotifications()
@@ -183,6 +244,25 @@ public class KioskActivity extends CordovaActivity {
             sendBroadcast(new Intent("android.intent.action.CLOSE_SYSTEM_DIALOGS"));
             collapseNotifications();
         }
+
+        if (hasFocus && immersiveMode) {
+
+            // Immersive Mode is enabled since 4.4 (API Level 19) and most likely enabled via
+            // Cordova Preferences.
+            // Strategy: Listen on SystemUI changes and let SystemUI disappear immediately after it appears.
+            // Cordova sets SYSTEM_UI_FLAG_IMMERSIVE_STICKY flag, but we need SYSTEM_UI_FLAG_IMMERSIVE in
+            // order to listen to SystemUI changes.
+            immersiveSystemUiOptions = getWindow().getDecorView().getSystemUiVisibility()
+
+                    // Cordova sets Sticky per default. Remove the flag as it prevents ui-change event delegation.
+                    & ~View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+
+                    // Make sure that Immersive flag is set. This will enable ui-change event delegation.
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE;
+
+            // Overwrite Cordova's UI Visibility Options.
+            getWindow().getDecorView().setSystemUiVisibility(immersiveSystemUiOptions);
+        }
     }
 
     //http://stackoverflow.com/questions/25284233/prevent-status-bar-for-appearing-android-modified?answertab=active#tab-top
@@ -227,4 +307,5 @@ public class KioskActivity extends CordovaActivity {
 
         appView.getView().requestFocusFromTouch();
     }
+
 }
