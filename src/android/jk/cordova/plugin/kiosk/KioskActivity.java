@@ -53,6 +53,10 @@ public class KioskActivity extends CordovaActivity {
         return surfaceView;
     }
 
+    public void setSurfaceView(SurfaceView surfaceView) {
+        this.surfaceView = surfaceView;
+    }
+
     protected void onStart() {
         super.onStart();
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext());
