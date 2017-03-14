@@ -42,19 +42,10 @@ public class KioskActivity extends CordovaActivity {
     String TAG = "KioskActivity";
 
     private ViewAnimator viewAnimator;
-    private SurfaceView surfaceView;
     private CustomViewGroup immersiveSystemUiOverlayView;
 
     public ViewAnimator getViewAnimator() {
         return viewAnimator;
-    }
-
-    public SurfaceView getSurfaceView() {
-        return surfaceView;
-    }
-
-    public void setSurfaceView(SurfaceView surfaceView) {
-        this.surfaceView = surfaceView;
     }
 
     protected void onStart() {
@@ -294,13 +285,7 @@ public class KioskActivity extends CordovaActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
         viewAnimator = new ViewAnimator(this);
-        surfaceView = new SurfaceView(this);
-        surfaceView.setLayoutParams(new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-
         viewAnimator.addView(appView.getView());
-        viewAnimator.addView(surfaceView);
         setContentView(viewAnimator);
 
         if (preferences.contains("BackgroundColor")) {
