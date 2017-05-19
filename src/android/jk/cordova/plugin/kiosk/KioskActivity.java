@@ -217,6 +217,12 @@ public class KioskActivity extends CordovaActivity {
         sendBroadcast(new Intent("android.intent.action.CLOSE_SYSTEM_DIALOGS"));
         collapseNotifications();
     }
+    
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        System.exit(0);
+    }    
 
     @Override
     public void onBackPressed() {
