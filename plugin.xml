@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android"
-        id="cordova-plugin-kiosk" version="0.2.16">
+        id="cordova-plugin-kiosk" version="0.2.17">
 
     <name>Cordova Kiosk Mode</name>
     <author>Jan Kalina</author>
@@ -22,7 +22,7 @@
     <keywords>cordova, launcher, homescreen, kiosk, kiosk mode</keywords>
 
     <engines>
-        <engine name="cordova" version=">=3.0.0" />
+        <engine name="cordova" version=">=7.0.0" />
     </engines>
 
     <js-module src="www/kiosk.js" name="kioskPlugin">
@@ -31,7 +31,7 @@
 
     <platform name="android">
 
-        <config-file target="res/xml/config.xml" parent="/*">
+        <config-file target="app/src/main/res/xml/config.xml" parent="/*">
             <feature name="KioskPlugin">
                 <param name="android-package" value="jk.cordova.plugin.kiosk.KioskPlugin" />
             </feature>
@@ -52,8 +52,8 @@
             </activity>
         </config-file>
 
-        <source-file src="src/android/jk/cordova/plugin/kiosk/KioskActivity.java" target-dir="src/jk/cordova/plugin/kiosk" />
-        <source-file src="src/android/jk/cordova/plugin/kiosk/KioskPlugin.java" target-dir="src/jk/cordova/plugin/kiosk" />
+        <source-file src="src/android/jk/cordova/plugin/kiosk/KioskActivity.java" target-dir="app/src/main/java/jk/cordova/plugin/kiosk" />
+        <source-file src="src/android/jk/cordova/plugin/kiosk/KioskPlugin.java" target-dir="app/src/main/java/jk/cordova/plugin/kiosk" />
 
     </platform>
 
